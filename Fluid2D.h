@@ -27,13 +27,14 @@ class Fluid2D {
 
 	void advect(float);
 	void applyForce();
-	void copy(unsigned int, unsigned int);
+	void copy(const GLuint* two, unsigned int, unsigned int);
 
 	// for testing purposes
 	void testBoundaryDrawing();
 	void testBoundaryAdvect();
 	void testInteriorAdvect(float);
 	void testApplyForce(float, float, float, float);
+	void testDye();
 
 public:
 	Fluid2D(int width, int height);

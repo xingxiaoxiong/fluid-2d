@@ -37,13 +37,20 @@ void Fluid2D::setup() {
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 
 	std::vector<GLfloat> emptyData(m_width * m_height * 3, 0.0);
-	std::vector<GLubyte> dyeTexture(m_width * m_height * 3, 0);
+	std::vector<GLfloat> flowRight(m_width * m_height * 3, 0.0);
+	std::vector<GLfloat> dyeTexture(m_width * m_height * 3, 0);
 
 	for (auto i = 0; i < m_height; i++) {
 		for (auto j = 0; j < m_width; j++) {
-			unsigned int color = glm::distance(glm::vec2(i, j), glm::vec2(m_width * 0.5, m_height * 0.5));
+			flowRight[(i * m_width + j) * 3 + 0] = 0.1;
+		}
+	}
+
+	for (auto i = 0; i < m_height; i++) {
+		for (auto j = 0; j < m_width; j++) {
+			float color = glm::distance(glm::vec2(i, j), glm::vec2(m_width * 0.5, m_height * 0.5));
 			for (int c = 0; c < 3; c++) {
-				dyeTexture[(i * m_width + j) * 3 + c] = color;
+				dyeTexture[(i * m_width + j) * 3 + c] = glm::min(color / 255, 1.0f);
 			}
 		}
 	}
@@ -55,7 +62,7 @@ void Fluid2D::setup() {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, m_width, m_height, 0, GL_RGB, GL_FLOAT, &emptyData[0]);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, m_width, m_height, 0, GL_RGB, GL_FLOAT, &flowRight[0]);
 	}
 
 	glGenTextures(1, &m_pressure);
@@ -73,7 +80,7 @@ void Fluid2D::setup() {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, m_width, m_height, 0, GL_RGB, GL_UNSIGNED_BYTE, &dyeTexture[0]);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, m_width, m_height, 0, GL_RGB, GL_FLOAT, &dyeTexture[0]);
 	}
 
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_velocity[0], 0);
@@ -102,47 +109,74 @@ void Fluid2D::applyForce(float startX, float startY, float deltaX, float deltaY)
 }
 
 void Fluid2D::update(float timeStep) {
-	advect(timeStep);
+	advect(0.01);
 
-	if (m_bApplyForce) {
-		//testApplyForce(m_forceX, m_forceY, m_forceStartX, m_forceStartY);
-		applyForce();
-		copy(0, 1);
-		m_bApplyForce = false;
-	}
+	//if (m_bApplyForce) {
+	//	//testApplyForce(m_forceX, m_forceY, m_forceStartX, m_forceStartY);
+	//	applyForce();
+	//	copy(0, 1);
+	//	m_bApplyForce = false;
+	//}
 
+	// copy(m_dye, 1, 0);
 	// display intermediate result
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	//GLenum drawBuffers[] = { GL_BACK_LEFT };
+	//glDrawBuffers(1, drawBuffers);
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo);
-	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_velocity[1], 0);
+	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_dye[0], 0);
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
 	glBlitFramebuffer(0, 0, m_width, m_height,
-		0, 0, m_width, m_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+		0, 0, m_width * 0.5, m_height * 0.5, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_dye[1], 0);
+	glReadBuffer(GL_COLOR_ATTACHMENT1);
+	glBlitFramebuffer(0, 0, m_width, m_height,
+		m_width * 0.5, 0, m_width, m_height * 0.5, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, m_velocity[0], 0);
+	glReadBuffer(GL_COLOR_ATTACHMENT2);
+	glBlitFramebuffer(0, 0, m_width, m_height,
+		0, m_height * 0.5, m_width * 0.5, m_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, m_velocity[1], 0);
+	glReadBuffer(GL_COLOR_ATTACHMENT3);
+	glBlitFramebuffer(0, 0, m_width, m_height,
+		m_width * 0.5, m_height * 0.5, m_width, m_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
 	
 }
 
 void Fluid2D::advect(float timeStep) {
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_velocity[1], 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_dye[1], 0);
 
-	glActiveTexture(0);
+	GLenum DrawBuffers[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+	glDrawBuffers(2, DrawBuffers);
+
+	checkFramebufferCompleteness();
+
+	glActiveTexture(GL_TEXTURE0 + 0);
 	glBindTexture(GL_TEXTURE_2D, m_velocity[0]);
+	glActiveTexture(GL_TEXTURE0 + 1);
+	glBindTexture(GL_TEXTURE_2D, m_dye[0]);
+	
 
 	// boundary
-	{
-		glUseProgram(m_boundaryAdvectShader);
+	//{
+	//	glUseProgram(m_boundaryAdvectShader);
 
-		const GLint textureLoc = glGetUniformLocation(m_boundaryAdvectShader, "field");
-		const GLint scaleLoc = glGetUniformLocation(m_boundaryAdvectShader, "scale");
-		const GLint halfTexelWidthLoc = glGetUniformLocation(m_boundaryAdvectShader, "halfTexelWidth");
+	//	const GLint textureLoc = glGetUniformLocation(m_boundaryAdvectShader, "field");
+	//	const GLint dyeLoc = glGetUniformLocation(m_boundaryAdvectShader, "dye");
+	//	const GLint scaleLoc = glGetUniformLocation(m_boundaryAdvectShader, "scale");
+	//	const GLint halfTexelWidthLoc = glGetUniformLocation(m_boundaryAdvectShader, "halfTexelWidth");
 
-		glUniform1f(scaleLoc, 1);
-		glUniform1i(textureLoc, 0);
-		glUniform1f(halfTexelWidthLoc, 1.0 / m_width * 0.5);
+	//	glUniform1f(scaleLoc, -1);
+	//	glUniform1i(textureLoc, 0);
+	//	glUniform1i(dyeLoc, 1);
+	//	glUniform1f(halfTexelWidthLoc, 1.0 / m_width * 0.5);
 
-		m_quad->draw();
-		glUseProgram(0);
-	}
+	//	m_quad->draw();
+	//	glUseProgram(0);
+	//}
 
 	 // interior
 	{
@@ -151,14 +185,16 @@ void Fluid2D::advect(float timeStep) {
 		const GLint timeStepLoc = glGetUniformLocation(m_interiorAdvectShader, "timeStep");
 		const GLint rdxLoc = glGetUniformLocation(m_interiorAdvectShader, "rdx");
 		const GLint uLoc = glGetUniformLocation(m_interiorAdvectShader, "u");
-		const GLint xLoc = glGetUniformLocation(m_interiorAdvectShader, "x");
+		//const GLint xLoc = glGetUniformLocation(m_interiorAdvectShader, "x");
+		const GLint dyeLoc = glGetUniformLocation(m_boundaryAdvectShader, "dye");
 		const GLint halfTexelWidthLoc = glGetUniformLocation(m_interiorAdvectShader, "halfTexelWidth");
 
 		glUniform1f(timeStepLoc, timeStep);
-		glUniform1f(rdxLoc, m_width / 2);
+		glUniform1f(rdxLoc, m_width / 2.0);
 		glUniform1f(halfTexelWidthLoc, 1.0 / m_width * 0.5);
 		glUniform1i(uLoc, 0);
-		glUniform1i(xLoc, 0);
+		//glUniform1i(xLoc, 0);
+		glUniform1i(dyeLoc, 1);
 
 		m_quad->draw();
 		glUseProgram(0);
@@ -173,7 +209,7 @@ void Fluid2D::applyForce() {
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_velocity[0], 0);
 
-	glActiveTexture(0);
+	glActiveTexture(GL_TEXTURE0 + 0);
 	glBindTexture(GL_TEXTURE_2D, m_velocity[1]);
 
 	glUseProgram(m_applyForceShader);
@@ -196,15 +232,15 @@ void Fluid2D::applyForce() {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void Fluid2D::copy(unsigned int from, unsigned int to) {
+void Fluid2D::copy(const GLuint* two, unsigned int from, unsigned int to) {
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_velocity[to], 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, two[to], 0);
 
-	glActiveTexture(0);
-	glBindTexture(GL_TEXTURE_2D, m_velocity[from]);
+	glActiveTexture(GL_TEXTURE0 + 0);
+	glBindTexture(GL_TEXTURE_2D, two[from]);
 	glUseProgram(m_copyShader);
 
-	const GLint sourceLoc = glGetUniformLocation(m_boundaryAdvectShader, "source");
+	const GLint sourceLoc = glGetUniformLocation(m_copyShader, "source");
 	glUniform1i(sourceLoc, 0);
 
 	m_quad->draw();
@@ -303,6 +339,19 @@ void Fluid2D::testApplyForce(float startX, float startY, float deltaX, float del
 	glUniform1f(halfTexelWidthLoc, 1.0 / 1024);
 	glUniform1i(uLoc, 0);
 	glUniform2f(FLoc, deltaX, deltaY);
+
+	m_quad->draw();
+	glUseProgram(0);
+}
+
+void Fluid2D::testDye() {
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glActiveTexture(0);
+	glBindTexture(GL_TEXTURE_2D, m_velocity[0]);
+	glUseProgram(m_copyShader);
+
+	const GLint sourceLoc = glGetUniformLocation(m_copyShader, "source");
+	glUniform1i(sourceLoc, 0);
 
 	m_quad->draw();
 	glUseProgram(0);
