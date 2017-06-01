@@ -109,7 +109,7 @@ void Fluid2D::applyForce(float startX, float startY, float deltaX, float deltaY)
 }
 
 void Fluid2D::update(float timeStep) {
-	advect(0.01);
+	advect(0.0001);
 
 	//if (m_bApplyForce) {
 	//	//testApplyForce(m_forceX, m_forceY, m_forceStartX, m_forceStartY);
@@ -118,7 +118,8 @@ void Fluid2D::update(float timeStep) {
 	//	m_bApplyForce = false;
 	//}
 
-	// copy(m_dye, 1, 0);
+	copy(m_dye, 1, 0);
+	copy(m_velocity, 1, 0);
 	// display intermediate result
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	//GLenum drawBuffers[] = { GL_BACK_LEFT };
@@ -161,24 +162,24 @@ void Fluid2D::advect(float timeStep) {
 	
 
 	// boundary
-	//{
-	//	glUseProgram(m_boundaryAdvectShader);
+	{
+		glUseProgram(m_boundaryAdvectShader);
 
-	//	const GLint textureLoc = glGetUniformLocation(m_boundaryAdvectShader, "field");
-	//	const GLint dyeLoc = glGetUniformLocation(m_boundaryAdvectShader, "dye");
-	//	const GLint scaleLoc = glGetUniformLocation(m_boundaryAdvectShader, "scale");
-	//	const GLint halfTexelWidthLoc = glGetUniformLocation(m_boundaryAdvectShader, "halfTexelWidth");
+		const GLint textureLoc = glGetUniformLocation(m_boundaryAdvectShader, "field");
+		const GLint dyeLoc = glGetUniformLocation(m_boundaryAdvectShader, "dye");
+		const GLint scaleLoc = glGetUniformLocation(m_boundaryAdvectShader, "scale");
+		const GLint halfTexelWidthLoc = glGetUniformLocation(m_boundaryAdvectShader, "halfTexelWidth");
 
-	//	glUniform1f(scaleLoc, -1);
-	//	glUniform1i(textureLoc, 0);
-	//	glUniform1i(dyeLoc, 1);
-	//	glUniform1f(halfTexelWidthLoc, 1.0 / m_width * 0.5);
+		glUniform1f(scaleLoc, -1);
+		glUniform1i(textureLoc, 0);
+		glUniform1i(dyeLoc, 1);
+		glUniform1f(halfTexelWidthLoc, 1.0 / m_width * 0.5);
 
-	//	m_quad->draw();
-	//	glUseProgram(0);
-	//}
+		m_quad->draw();
+		glUseProgram(0);
+	}
 
-	 // interior
+	// interior
 	{
 		glUseProgram(m_interiorAdvectShader);
 
@@ -235,6 +236,7 @@ void Fluid2D::applyForce() {
 void Fluid2D::copy(const GLuint* two, unsigned int from, unsigned int to) {
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, two[to], 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, 0, 0);
 
 	glActiveTexture(GL_TEXTURE0 + 0);
 	glBindTexture(GL_TEXTURE_2D, two[from]);
