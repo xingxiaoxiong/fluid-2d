@@ -76,5 +76,23 @@
     <None Include="shaders\copy.vs">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="shaders\solve_jacobi.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="shaders\solve_jacobi.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="shaders\divergence.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="shaders\divergence.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="shaders\gradient_subtraction.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="shaders\gradient_subtraction.vs">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

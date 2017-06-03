@@ -7,9 +7,11 @@
 
 class Fluid2D {
 	int m_width, m_height;
+	float m_viscosity;
 
 	GLuint m_fbo;
 	GLuint m_velocity[2], m_pressure[2];
+	GLuint m_divergence;
 	GLuint m_dye[2];
 	GLuint m_v_src, m_v_dst;
 	GLuint m_p_src, m_p_dst;
@@ -22,6 +24,9 @@ class Fluid2D {
 	GLuint m_boundaryAdvectShader;
 	GLuint m_interiorAdvectShader;
 	GLuint m_applyForceShader;
+	GLuint m_possionShader;
+	GLuint m_divergenceShader;
+	GLuint m_gradientSubtractionShader;
 
 	bool m_bApplyForce;
 	float m_forceStartX, m_forceStartY, m_forceX, m_forceY;
@@ -30,8 +35,11 @@ class Fluid2D {
 
 	void advect(float);
 	void applyForce();
-	void diffuseVelocity();
-	void solvePossion();
+	void diffuseVelocity(float);
+	void computePressure();
+	void gradientSubtraction();
+	void divergence();
+	void solvePossion(int);
 	void copy(const GLuint* two, unsigned int, unsigned int);
 
 	// for testing purposes
