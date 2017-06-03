@@ -3,12 +3,10 @@
 in vec2 fUV;
 
 layout (location = 0) out vec4 color;
-layout (location = 1) out vec4 color1;
 
 uniform float halfTexelWidth;
 uniform float scale;  // 1 for pressure, -1 for velocity
 uniform sampler2D field;
-uniform sampler2D dye;
 
 void main() {
 	vec2 uv;
@@ -30,5 +28,4 @@ void main() {
 
 	//uv = fUV;
 	color = texture(field, uv) * scale;
-	color1 = texture(dye, uv) * scale;
 }

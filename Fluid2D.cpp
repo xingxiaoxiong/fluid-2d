@@ -130,7 +130,9 @@ void Fluid2D::applyForce(float startX, float startY, float deltaX, float deltaY)
 }
 
 void Fluid2D::update(float timeStep) {
-	advect(0.0001);
+	timeStep = 0.00001;
+	advect_velocity(timeStep);
+	advect_dye(timeStep);
 
 	if (m_bApplyForce) {
 		//testApplyForce(m_forceX, m_forceY, m_forceStartX, m_forceStartY);
@@ -168,37 +170,27 @@ void Fluid2D::update(float timeStep) {
 	glBlitFramebuffer(0, 0, m_width, m_height,
 		m_width * 0.5, m_height * 0.5, m_width, m_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
-	
 }
 
-void Fluid2D::advect(float timeStep) {
+void Fluid2D::advect_velocity(float timeStep) {
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_velocity[m_v_dst], 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_dye[m_dye_dst], 0);
-
-	GLenum DrawBuffers[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
-	glDrawBuffers(2, DrawBuffers);
 
 	checkFramebufferCompleteness();
 
 	glActiveTexture(GL_TEXTURE0 + 0);
 	glBindTexture(GL_TEXTURE_2D, m_velocity[m_v_src]);
-	glActiveTexture(GL_TEXTURE0 + 1);
-	glBindTexture(GL_TEXTURE_2D, m_dye[m_dye_src]);
 	
-
 	// boundary
 	{
 		glUseProgram(m_boundaryAdvectShader);
 
 		const GLint textureLoc = glGetUniformLocation(m_boundaryAdvectShader, "field");
-		const GLint dyeLoc = glGetUniformLocation(m_boundaryAdvectShader, "dye");
 		const GLint scaleLoc = glGetUniformLocation(m_boundaryAdvectShader, "scale");
 		const GLint halfTexelWidthLoc = glGetUniformLocation(m_boundaryAdvectShader, "halfTexelWidth");
 
 		glUniform1f(scaleLoc, -1);
 		glUniform1i(textureLoc, 0);
-		glUniform1i(dyeLoc, 1);
 		glUniform1f(halfTexelWidthLoc, 1.0 / m_width * 0.5);
 
 		m_quad->draw();
@@ -212,8 +204,6 @@ void Fluid2D::advect(float timeStep) {
 		const GLint timeStepLoc = glGetUniformLocation(m_interiorAdvectShader, "timeStep");
 		const GLint rdxLoc = glGetUniformLocation(m_interiorAdvectShader, "rdx");
 		const GLint uLoc = glGetUniformLocation(m_interiorAdvectShader, "u");
-		//const GLint xLoc = glGetUniformLocation(m_interiorAdvectShader, "x");
-		const GLint dyeLoc = glGetUniformLocation(m_boundaryAdvectShader, "dye");
 		const GLint halfTexelWidthLoc = glGetUniformLocation(m_interiorAdvectShader, "halfTexelWidth");
 
 		glUniform1f(timeStepLoc, timeStep);
@@ -221,7 +211,6 @@ void Fluid2D::advect(float timeStep) {
 		glUniform1f(halfTexelWidthLoc, 1.0 / m_width * 0.5);
 		glUniform1i(uLoc, 0);
 		//glUniform1i(xLoc, 0);
-		glUniform1i(dyeLoc, 1);
 
 		m_quad->draw();
 		glUseProgram(0);
@@ -230,6 +219,54 @@ void Fluid2D::advect(float timeStep) {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	std::swap(m_v_src, m_v_dst);
+}
+
+void Fluid2D::advect_dye(float timeStep) {
+	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_dye[m_dye_dst], 0);
+
+	checkFramebufferCompleteness();
+
+	glActiveTexture(GL_TEXTURE0 + 0);
+	glBindTexture(GL_TEXTURE_2D, m_dye[m_dye_src]);
+
+	// boundary
+	{
+		glUseProgram(m_boundaryAdvectShader);
+
+		const GLint textureLoc = glGetUniformLocation(m_boundaryAdvectShader, "field");
+		const GLint scaleLoc = glGetUniformLocation(m_boundaryAdvectShader, "scale");
+		const GLint halfTexelWidthLoc = glGetUniformLocation(m_boundaryAdvectShader, "halfTexelWidth");
+
+		glUniform1f(scaleLoc, 0);
+		glUniform1i(textureLoc, 0);
+		glUniform1f(halfTexelWidthLoc, 1.0 / m_width * 0.5);
+
+		m_quad->draw();
+		glUseProgram(0);
+	}
+
+	// interior
+	{
+		glUseProgram(m_interiorAdvectShader);
+
+		const GLint timeStepLoc = glGetUniformLocation(m_interiorAdvectShader, "timeStep");
+		const GLint rdxLoc = glGetUniformLocation(m_interiorAdvectShader, "rdx");
+		const GLint uLoc = glGetUniformLocation(m_interiorAdvectShader, "u");
+		const GLint halfTexelWidthLoc = glGetUniformLocation(m_interiorAdvectShader, "halfTexelWidth");
+
+		glUniform1f(timeStepLoc, timeStep);
+		glUniform1f(rdxLoc, m_width / 2.0);
+		glUniform1f(halfTexelWidthLoc, 1.0 / m_width * 0.5);
+		glUniform1i(uLoc, 0);
+		//glUniform1i(xLoc, 0);
+
+		m_quad->draw();
+		glUseProgram(0);
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 	std::swap(m_dye_src, m_dye_dst);
 }
 
@@ -238,7 +275,6 @@ void Fluid2D::applyForce() {
 
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_velocity[m_v_dst], 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, 0, 0);
 
 	glActiveTexture(GL_TEXTURE0 + 0);
 	glBindTexture(GL_TEXTURE_2D, m_velocity[m_v_src]);
@@ -266,10 +302,9 @@ void Fluid2D::applyForce() {
 }
 
 void Fluid2D::diffuseVelocity(float timeStep) {
-	for (int i = 0; i < 50; i++) {
+	for (int i = 0; i < 60; i++) {
 		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_velocity[m_v_dst], 0);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, 0, 0);
 
 		glActiveTexture(GL_TEXTURE0 + 0);
 		glBindTexture(GL_TEXTURE_2D, m_velocity[m_v_src]);
@@ -303,7 +338,6 @@ void Fluid2D::diffuseVelocity(float timeStep) {
 void Fluid2D::divergence() {
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_divergence, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, 0, 0);
 
 	glActiveTexture(GL_TEXTURE0 + 0);
 	glBindTexture(GL_TEXTURE_2D, m_velocity[m_v_src]);
@@ -327,10 +361,22 @@ void Fluid2D::divergence() {
 }
 
 void Fluid2D::computePressure() {
+	std::vector<GLfloat> data(m_width * m_height * 3, 0.0);
+	for (auto i = 0; i < m_width; i++) {
+		for (auto j = 0; j < m_height; j++) {
+			if (i < m_width * 0.5 && j < m_height * 0.5) {
+				data[(i * m_height + j) * 3] = 0.01;
+			}
+		}
+	}
+
+	glActiveTexture(0);
+	glBindTexture(GL_TEXTURE_2D, m_pressure[m_p_src]);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_width, m_height, GL_R, GL_FLOAT, &data[0]);
+
 	for (int i = 0; i < 80; i++) {
 		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_pressure[m_p_dst], 0);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, 0, 0);
 
 		glActiveTexture(GL_TEXTURE0 + 0);
 		glBindTexture(GL_TEXTURE_2D, m_pressure[m_p_src]);
@@ -338,26 +384,43 @@ void Fluid2D::computePressure() {
 		glActiveTexture(GL_TEXTURE0 + 1);
 		glBindTexture(GL_TEXTURE_2D, m_divergence);
 
-		glUseProgram(m_possionShader);
+		{
+			glUseProgram(m_boundaryAdvectShader);
 
-		const GLint xLoc = glGetUniformLocation(m_possionShader, "x");
-		const GLint bLoc = glGetUniformLocation(m_possionShader, "b");
-		const GLint alphaLoc = glGetUniformLocation(m_possionShader, "alpha");
-		const GLint rBetaLoc = glGetUniformLocation(m_possionShader, "rBeta");
-		const GLint halfTexelWidthLoc = glGetUniformLocation(m_possionShader, "halfTexelWidth");
+			const GLint textureLoc = glGetUniformLocation(m_boundaryAdvectShader, "field");
+			const GLint scaleLoc = glGetUniformLocation(m_boundaryAdvectShader, "scale");
+			const GLint halfTexelWidthLoc = glGetUniformLocation(m_boundaryAdvectShader, "halfTexelWidth");
 
-		float dx = 2.0 / m_width;
-		float alpha = - dx*dx;
-		float rBeta = 0.25;
+			glUniform1f(scaleLoc, 1);
+			glUniform1i(textureLoc, 0);
+			glUniform1f(halfTexelWidthLoc, 1.0 / m_width * 0.5);
 
-		glUniform1i(xLoc, 0);
-		glUniform1i(bLoc, 1);
-		glUniform1f(halfTexelWidthLoc, 1.0 / m_width * 0.5);
-		glUniform1f(alphaLoc, alpha);
-		glUniform1f(rBetaLoc, rBeta);
+			m_quad->draw();
+			glUseProgram(0);
+		}
 
-		m_quad->draw();
-		glUseProgram(0);
+		{
+			glUseProgram(m_possionShader);
+
+			const GLint xLoc = glGetUniformLocation(m_possionShader, "x");
+			const GLint bLoc = glGetUniformLocation(m_possionShader, "b");
+			const GLint alphaLoc = glGetUniformLocation(m_possionShader, "alpha");
+			const GLint rBetaLoc = glGetUniformLocation(m_possionShader, "rBeta");
+			const GLint halfTexelWidthLoc = glGetUniformLocation(m_possionShader, "halfTexelWidth");
+
+			float dx = 2.0 / m_width;
+			float alpha = -dx*dx;
+			float rBeta = 0.25;
+
+			glUniform1i(xLoc, 0);
+			glUniform1i(bLoc, 1);
+			glUniform1f(halfTexelWidthLoc, 1.0 / m_width * 0.5);
+			glUniform1f(alphaLoc, alpha);
+			glUniform1f(rBetaLoc, rBeta);
+
+			m_quad->draw();
+			glUseProgram(0);
+		}
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		std::swap(m_p_src, m_p_dst);
@@ -365,35 +428,60 @@ void Fluid2D::computePressure() {
 }
 
 void Fluid2D::gradientSubtraction() {
-	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_velocity[m_v_dst], 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, 0, 0);
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_velocity[m_v_dst], 0);
 
-	glActiveTexture(GL_TEXTURE0 + 0);
-	glBindTexture(GL_TEXTURE_2D, m_velocity[m_v_src]);
+		glActiveTexture(GL_TEXTURE0 + 0);
+		glBindTexture(GL_TEXTURE_2D, m_velocity[m_v_src]);
 
-	glActiveTexture(GL_TEXTURE0 + 1);
-	glBindTexture(GL_TEXTURE_2D, m_pressure[m_p_src]);
+		glUseProgram(m_boundaryAdvectShader);
 
-	glUseProgram(m_gradientSubtractionShader);
+		const GLint textureLoc = glGetUniformLocation(m_boundaryAdvectShader, "field");
+		const GLint scaleLoc = glGetUniformLocation(m_boundaryAdvectShader, "scale");
+		const GLint halfTexelWidthLoc = glGetUniformLocation(m_boundaryAdvectShader, "halfTexelWidth");
 
-	const GLint wLoc = glGetUniformLocation(m_gradientSubtractionShader, "w");
-	const GLint pLoc = glGetUniformLocation(m_gradientSubtractionShader, "p");
-	const GLint halfrdxLoc = glGetUniformLocation(m_gradientSubtractionShader, "halfrdx");
-	const GLint halfTexelWidthLoc = glGetUniformLocation(m_gradientSubtractionShader, "halfTexelWidth");
+		glUniform1f(scaleLoc, -1);
+		glUniform1i(textureLoc, 0);
+		glUniform1f(halfTexelWidthLoc, 1.0 / m_width * 0.5);
 
-	float halfrdx = 2.0 / m_width * 0.5;
+		m_quad->draw();
+		glUseProgram(0);
 
-	glUniform1i(wLoc, 0);
-	glUniform1i(pLoc, 1);
-	glUniform1f(halfTexelWidthLoc, 1.0 / m_width * 0.5);
-	glUniform1f(halfrdxLoc, halfrdx);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		std::swap(m_v_src, m_v_dst);
+	}
 
-	m_quad->draw();
-	glUseProgram(0);
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_velocity[m_v_dst], 0);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	std::swap(m_v_src, m_v_dst);
+		glActiveTexture(GL_TEXTURE0 + 0);
+		glBindTexture(GL_TEXTURE_2D, m_velocity[m_v_src]);
+
+		glActiveTexture(GL_TEXTURE0 + 1);
+		glBindTexture(GL_TEXTURE_2D, m_pressure[m_p_src]);
+
+		glUseProgram(m_gradientSubtractionShader);
+
+		const GLint wLoc = glGetUniformLocation(m_gradientSubtractionShader, "w");
+		const GLint pLoc = glGetUniformLocation(m_gradientSubtractionShader, "p");
+		const GLint halfrdxLoc = glGetUniformLocation(m_gradientSubtractionShader, "halfrdx");
+		const GLint halfTexelWidthLoc = glGetUniformLocation(m_gradientSubtractionShader, "halfTexelWidth");
+
+		float halfrdx = 2.0 / m_width * 0.5;
+
+		glUniform1i(wLoc, 0);
+		glUniform1i(pLoc, 1);
+		glUniform1f(halfTexelWidthLoc, 1.0 / m_width * 0.5);
+		glUniform1f(halfrdxLoc, halfrdx);
+
+		m_quad->draw();
+		glUseProgram(0);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		std::swap(m_v_src, m_v_dst);
+	}
 }
 
 void Fluid2D::solvePossion(int iterationCount = 30) {
@@ -403,7 +491,6 @@ void Fluid2D::solvePossion(int iterationCount = 30) {
 void Fluid2D::copy(const GLuint* two, unsigned int from, unsigned int to) {
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, two[to], 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, 0, 0);
 
 	glActiveTexture(GL_TEXTURE0 + 0);
 	glBindTexture(GL_TEXTURE_2D, two[from]);

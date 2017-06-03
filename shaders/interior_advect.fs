@@ -3,7 +3,6 @@
 in vec2 fUV;
 
 layout (location = 0) out vec3 color;
-layout (location = 1) out vec3 color1;
 
 uniform float timeStep;
 uniform float rdx; // 1 / grid scale
@@ -20,5 +19,4 @@ void main() {
 	}
 	
 	color = texture(u, uv).xyz;
-	color1 = texture(dye, uv).xyz;
 }

@@ -33,7 +33,9 @@ class Fluid2D {
 
 	void setup();
 
-	void advect(float);
+
+	void advect_velocity(float);
+	void advect_dye(float);
 	void applyForce();
 	void diffuseVelocity(float);
 	void computePressure();
