@@ -2,7 +2,7 @@
 #include "Fluid2D.h"
 #include <vector>
 
-Fluid2D::Fluid2D(int width, int height) : m_bApplyForce(false) {
+Fluid2D::Fluid2D(int width, int height) : m_bApplyForce(false), m_v_src(0), m_v_dst(1), m_p_src(0), m_p_dst(1), m_dye_src(0), m_dye_dst(1) {
 	m_width = width;
 	m_height = height;
 
@@ -65,13 +65,15 @@ void Fluid2D::setup() {
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, m_width, m_height, 0, GL_RGB, GL_FLOAT, &emptyData[0]);
 	}
 
-	glGenTextures(1, &m_pressure);
-	glBindTexture(GL_TEXTURE_2D, m_pressure);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, m_width, m_height, 0, GL_R, GL_FLOAT, &emptyData[0]);
+	glGenTextures(2, m_pressure);
+	for (auto i = 0; i < 2; i++) {
+		glBindTexture(GL_TEXTURE_2D, m_pressure[i]);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, m_width, m_height, 0, GL_R, GL_FLOAT, &emptyData[0]);
+	}
 
 	glGenTextures(2, m_dye);
 	for (auto i = 0; i < 2; i++) {
@@ -116,30 +118,25 @@ void Fluid2D::update(float timeStep) {
 		applyForce();
 		m_bApplyForce = false;
 	}
-	else {
-		copy(m_velocity, 1, 0);
-	}
-
-	copy(m_dye, 1, 0);
 	
 	// display intermediate result
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	//GLenum drawBuffers[] = { GL_BACK_LEFT };
 	//glDrawBuffers(1, drawBuffers);
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo);
-	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_dye[0], 0);
+	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_dye[m_dye_src], 0);
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
 	glBlitFramebuffer(0, 0, m_width, m_height,
 		0, 0, m_width * 0.5, m_height * 0.5, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_dye[1], 0);
+	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_dye[m_dye_dst], 0);
 	glReadBuffer(GL_COLOR_ATTACHMENT1);
 	glBlitFramebuffer(0, 0, m_width, m_height,
 		m_width * 0.5, 0, m_width, m_height * 0.5, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, m_velocity[0], 0);
+	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, m_velocity[m_v_src], 0);
 	glReadBuffer(GL_COLOR_ATTACHMENT2);
 	glBlitFramebuffer(0, 0, m_width, m_height,
 		0, m_height * 0.5, m_width * 0.5, m_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, m_velocity[1], 0);
+	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, m_velocity[m_v_dst], 0);
 	glReadBuffer(GL_COLOR_ATTACHMENT3);
 	glBlitFramebuffer(0, 0, m_width, m_height,
 		m_width * 0.5, m_height * 0.5, m_width, m_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
@@ -149,8 +146,8 @@ void Fluid2D::update(float timeStep) {
 
 void Fluid2D::advect(float timeStep) {
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_velocity[1], 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_dye[1], 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_velocity[m_v_dst], 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_dye[m_dye_dst], 0);
 
 	GLenum DrawBuffers[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
 	glDrawBuffers(2, DrawBuffers);
@@ -158,9 +155,9 @@ void Fluid2D::advect(float timeStep) {
 	checkFramebufferCompleteness();
 
 	glActiveTexture(GL_TEXTURE0 + 0);
-	glBindTexture(GL_TEXTURE_2D, m_velocity[0]);
+	glBindTexture(GL_TEXTURE_2D, m_velocity[m_v_src]);
 	glActiveTexture(GL_TEXTURE0 + 1);
-	glBindTexture(GL_TEXTURE_2D, m_dye[0]);
+	glBindTexture(GL_TEXTURE_2D, m_dye[m_dye_src]);
 	
 
 	// boundary
@@ -204,17 +201,20 @@ void Fluid2D::advect(float timeStep) {
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	std::swap(m_v_src, m_v_dst);
+	std::swap(m_dye_src, m_dye_dst);
 }
 
 void Fluid2D::applyForce() {
 	float radius = glm::sqrt(m_forceX * m_forceX + m_forceY * m_forceY);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_velocity[0], 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_velocity[m_v_dst], 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, 0, 0);
 
 	glActiveTexture(GL_TEXTURE0 + 0);
-	glBindTexture(GL_TEXTURE_2D, m_velocity[1]);
+	glBindTexture(GL_TEXTURE_2D, m_velocity[m_v_src]);
 
 	glUseProgram(m_applyForceShader);
 
@@ -234,6 +234,16 @@ void Fluid2D::applyForce() {
 	glUseProgram(0);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	std::swap(m_v_src, m_v_dst);
+}
+
+void Fluid2D::diffuseVelocity() {
+
+}
+
+void Fluid2D::solvePossion() {
+
 }
 
 void Fluid2D::copy(const GLuint* two, unsigned int from, unsigned int to) {

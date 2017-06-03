@@ -9,8 +9,11 @@ class Fluid2D {
 	int m_width, m_height;
 
 	GLuint m_fbo;
-	GLuint m_velocity[2], m_pressure;
+	GLuint m_velocity[2], m_pressure[2];
 	GLuint m_dye[2];
+	GLuint m_v_src, m_v_dst;
+	GLuint m_p_src, m_p_dst;
+	GLuint m_dye_src, m_dye_dst;
 
 	std::unique_ptr<Mesh> m_line, m_quad;
 
@@ -27,6 +30,8 @@ class Fluid2D {
 
 	void advect(float);
 	void applyForce();
+	void diffuseVelocity();
+	void solvePossion();
 	void copy(const GLuint* two, unsigned int, unsigned int);
 
 	// for testing purposes
