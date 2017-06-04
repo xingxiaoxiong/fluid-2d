@@ -12,5 +12,3 @@
 At Section Force Application in the article, the equation used to calculate the additive velocity due to external forces is wrong. Using the original equation will result in divergence of velocities, so I simply added a minus sign within exp which then becomes:
 
 c = F * exp{ - [(x-xp)^2 + (y-yp)^2] / r}
-
-![image](http://www.sciweavers.org/tex2img.php?eq=c%20%3D%20F%20%2A%20exp%28-%5Cfrac%7B%7B%28x%20-%20x_p%29%7D%5E2%20%2B%20%7B%28y%20-%20y_p%29%7D%5E2%7D%7Br%7D%29%0A&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=0)  
