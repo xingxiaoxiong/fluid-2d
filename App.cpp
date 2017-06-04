@@ -27,25 +27,12 @@ void App::initializeGLFW(std::string name) {
 
 	// initialize callbacks
 	glfwSetMouseButtonCallback(m_window, [](GLFWwindow* pWindow, int button, int action, int mode) {
-		static bool lbutton_down = false;
-		static double startX, startY, endX, endY;
-		static float deltaX, deltaY;
 		if (button == GLFW_MOUSE_BUTTON_LEFT) {
-			if (GLFW_PRESS == action)
-				lbutton_down = true;
-			else if (GLFW_RELEASE == action)
-				lbutton_down = false;
-		}
-
-		if (lbutton_down) {
-			glfwGetCursorPos(pWindow, &startX, &startY);
-		}
-		else {
-			glfwGetCursorPos(pWindow, &endX, &endY);
-			deltaX = endX - startX;
-			deltaY = endY - startY;
 			auto app = (App*)glfwGetWindowUserPointer(pWindow);
-			app->applyForce(startX, startY, deltaX, deltaY);
+			if (GLFW_PRESS == action)
+				app->setLeftMouseButtonPress(true);
+			else if (GLFW_RELEASE == action)
+				app->setLeftMouseButtonPress(false);
 		}
 		
 	});
@@ -53,6 +40,10 @@ void App::initializeGLFW(std::string name) {
 
 void App::setup() {
 	m_fluid = std::make_unique<Fluid2D>(m_width, m_height);
+}
+
+void App::setLeftMouseButtonPress(bool pressed) {
+	m_bLeftMouseButtonPressed = pressed;
 }
 
 void App::run() {
@@ -63,6 +54,9 @@ void App::run() {
 	auto prevTime = glfwGetTime();
 	auto currentTime = glfwGetTime();
 
+	double mouseStartX = -1, mouseStartY = -1;
+	double mouseEndX, mouseEndY;
+
 	while (!glfwWindowShouldClose(m_window))
 	{
 		glClearColor(0.1, 0.1, 0.1, 0);
@@ -70,6 +64,25 @@ void App::run() {
 
 		currentTime = glfwGetTime();
 		m_fluid->update(currentTime - prevTime);
+		
+		if (m_bLeftMouseButtonPressed) {
+			if (mouseStartX < 0) {
+				glfwGetCursorPos(m_window, &mouseStartX, &mouseStartY);
+			}
+			else {
+				glfwGetCursorPos(m_window, &mouseEndX, &mouseEndY);
+				float deltaX = mouseEndX - mouseStartX;
+				float deltaY = mouseEndY - mouseStartY;
+				applyForce(mouseStartX, mouseStartY, deltaX, deltaY);
+				mouseStartX = mouseEndX;
+				mouseStartY = mouseEndY;
+			}
+		}
+		else {
+			mouseStartX = -1;
+			mouseStartY = -1;
+		}
+
 		prevTime = currentTime;
 
 		glfwSwapBuffers(m_window);

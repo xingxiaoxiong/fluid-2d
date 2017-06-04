@@ -16,6 +16,8 @@ Fluid2D::Fluid2D(int width, int height) :
 	m_width = width;
 	m_height = height;
 
+	m_dx = 2.0 / m_width;
+
 	m_line = std::make_unique<Line>();
 	m_quad = std::make_unique<Quad>();
 
@@ -159,7 +161,7 @@ void Fluid2D::applyForce(float startX, float startY, float deltaX, float deltaY)
 }
 
 void Fluid2D::update(float timeStep) {
-	timeStep = 0.003;
+	timeStep = 0.1;
 	advectVelocity(timeStep);
 
 	advect_dye(timeStep);

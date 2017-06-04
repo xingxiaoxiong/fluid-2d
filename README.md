@@ -1,6 +1,6 @@
 ### Intruduction
 - This is a an implementation of the article [*Fast Fluid Dynamics Simulation on the GPU*](https://developer.nvidia.com/gpugems/GPUGems/gpugems_ch38.html) on GPU Gems.
-- There is a [YouTube video](https://youtu.be/TiUO4fzy4fo) demonstrating the use of this program.
+- There is a [YouTube video](https://youtu.be/YikGESU-z6c) demonstrating the use of this program.
 
 ### Compile
 - This program has been tested with VS 2015 on Win10 64bit. To compile it, you need the following libraries:
