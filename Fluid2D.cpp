@@ -10,8 +10,8 @@ Fluid2D::Fluid2D(int width, int height) :
 	m_p_dst(1), 
 	m_dye_src(0), 
 	m_dye_dst(1), 
-	m_viscosity(0.01),
-	m_dx(1.0) {
+	m_viscosity(0.0001),
+	m_dx(0.01) {
 
 	m_width = width;
 	m_height = height;
@@ -56,9 +56,9 @@ void Fluid2D::setup() {
 
 	for (auto i = 0; i < m_height; i++) {
 		for (auto j = 0; j < m_width; j++) {
-			float color = glm::distance(glm::vec2(i, j), glm::vec2(m_width * 0.5, m_height * 0.5));
+			float color = glm::distance(glm::vec2(i, j), glm::vec2(m_width * 0.5, m_height * 0.5)) / 10;
 			for (int c = 0; c < 3; c++) {
-				dyeTexture[(i * m_width + j) * 3 + c] = glm::min(color / 600, 1.0f);
+				dyeTexture[(i * m_width + j) * 3 + c] = glm::min(glm::sin(color), 1.0f);
 			}
 		}
 	}
@@ -118,6 +118,7 @@ void Fluid2D::setup() {
 	m_divergenceShader.load("shaders/forward_uv.vs", "shaders/divergence.fs");
 	m_gradientSubtractionShader.load("shaders/forward_uv.vs", "shaders/gradient_subtraction.fs");
 
+	// set shader program parameters
 	m_boundaryAdvectShader.use();
 	m_boundaryAdvectShader.setParameter1i("field", 0);
 	m_boundaryAdvectShader.setParameter1i("textureWidth", m_width);
@@ -158,7 +159,7 @@ void Fluid2D::applyForce(float startX, float startY, float deltaX, float deltaY)
 }
 
 void Fluid2D::update(float timeStep) {
-	timeStep = 0.3;
+	timeStep = 0.003;
 	advectVelocity(timeStep);
 
 	advect_dye(timeStep);
@@ -176,7 +177,6 @@ void Fluid2D::update(float timeStep) {
 
 	gradientSubtraction();
 	
-	// display intermediate result
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo);
 
@@ -184,24 +184,6 @@ void Fluid2D::update(float timeStep) {
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
 	glBlitFramebuffer(0, 0, m_width, m_height,
 		0, 0, m_width, m_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
-	return;
-	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_dye[m_dye_src], 0);
-	glReadBuffer(GL_COLOR_ATTACHMENT0);
-	glBlitFramebuffer(0, 0, m_width, m_height,
-		0, 0, m_width * 0.5, m_height * 0.5, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_dye[m_dye_dst], 0);
-	glReadBuffer(GL_COLOR_ATTACHMENT1);
-	glBlitFramebuffer(0, 0, m_width, m_height,
-		m_width * 0.5, 0, m_width, m_height * 0.5, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, m_velocity[m_v_src], 0);
-	glReadBuffer(GL_COLOR_ATTACHMENT2);
-	glBlitFramebuffer(0, 0, m_width, m_height,
-		0, m_height * 0.5, m_width * 0.5, m_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, m_velocity[m_v_dst], 0);
-	glReadBuffer(GL_COLOR_ATTACHMENT3);
-	glBlitFramebuffer(0, 0, m_width, m_height,
-		m_width * 0.5, m_height * 0.5, m_width, m_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
 }
 
@@ -289,6 +271,7 @@ void Fluid2D::advect_dye(float timeStep) {
 
 void Fluid2D::applyForce() {
 	float radius = glm::sqrt(m_forceX * m_forceX + m_forceY * m_forceY);
+	if (radius < 1) return;
 
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_velocity[m_v_dst], 0);
@@ -312,7 +295,7 @@ void Fluid2D::applyForce() {
 }
 
 void Fluid2D::diffuseVelocity(float timeStep) {
-	for (int i = 0; i < 60; i++) {
+	for (int i = 0; i < 30; i++) {
 		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_velocity[m_v_dst], 0);
 
