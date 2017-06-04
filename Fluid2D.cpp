@@ -110,14 +110,14 @@ void Fluid2D::setup() {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	// initialize shaders
-	testShader = createShaderProgram(loadTextFile("shaders/forward_uv.vs"), loadTextFile("shaders/poly.fs"));
-	m_boundaryAdvectShader = createShaderProgram(loadTextFile("shaders/forward_uv.vs"), loadTextFile("shaders/boundary_advect.fs"));
-	m_interiorAdvectShader = createShaderProgram(loadTextFile("shaders/forward_uv.vs"), loadTextFile("shaders/interior_advect.fs"));
-	m_applyForceShader = createShaderProgram(loadTextFile("shaders/forward_uv.vs"), loadTextFile("shaders/apply_force.fs"));
-	m_copyShader = createShaderProgram(loadTextFile("shaders/forward_uv.vs"), loadTextFile("shaders/copy.fs"));
-	m_possionShader = createShaderProgram(loadTextFile("shaders/forward_uv.vs"), loadTextFile("shaders/solve_jacobi.fs"));
-	m_divergenceShader = createShaderProgram(loadTextFile("shaders/forward_uv.vs"), loadTextFile("shaders/divergence.fs"));
-	m_gradientSubtractionShader = createShaderProgram(loadTextFile("shaders/forward_uv.vs"), loadTextFile("shaders/gradient_subtraction.fs"));
+	testShader.load("shaders/forward_uv.vs", "shaders/poly.fs");
+	m_boundaryAdvectShader.load("shaders/forward_uv.vs", "shaders/boundary_advect.fs");
+	m_interiorAdvectShader.load("shaders/forward_uv.vs", "shaders/interior_advect.fs");
+	m_applyForceShader.load("shaders/forward_uv.vs", "shaders/apply_force.fs");
+	m_copyShader.load("shaders/forward_uv.vs", "shaders/copy.fs");
+	m_possionShader.load("shaders/forward_uv.vs", "shaders/solve_jacobi.fs");
+	m_divergenceShader.load("shaders/forward_uv.vs", "shaders/divergence.fs");
+	m_gradientSubtractionShader.load("shaders/forward_uv.vs", "shaders/gradient_subtraction.fs");
 }
 
 void Fluid2D::applyForce(float startX, float startY, float deltaX, float deltaY) {
@@ -187,18 +187,14 @@ void Fluid2D::advectVelocity(float timeStep) {
 		glActiveTexture(GL_TEXTURE0 + 0);
 		glBindTexture(GL_TEXTURE_2D, m_velocity[m_v_src]);
 
-		glUseProgram(m_boundaryAdvectShader);
+		m_boundaryAdvectShader.use();
 
-		const GLint textureLoc = glGetUniformLocation(m_boundaryAdvectShader, "field");
-		const GLint scaleLoc = glGetUniformLocation(m_boundaryAdvectShader, "scale");
-		const GLint textureWidthLoc = glGetUniformLocation(m_boundaryAdvectShader, "textureWidth");
-
-		glUniform1f(scaleLoc, -1);
-		glUniform1i(textureLoc, 0);
-		glUniform1i(textureWidthLoc, m_width);
+		m_boundaryAdvectShader.setParameter1f("scale", -1);
+		m_boundaryAdvectShader.setParameter1i("field", 0);
+		m_boundaryAdvectShader.setParameter1i("textureWidth", m_width);
 
 		m_quad->draw();
-		glUseProgram(0);
+		m_boundaryAdvectShader.unuse();
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -213,22 +209,16 @@ void Fluid2D::advectVelocity(float timeStep) {
 		glActiveTexture(GL_TEXTURE0 + 0);
 		glBindTexture(GL_TEXTURE_2D, m_velocity[m_v_src]);
 
-		glUseProgram(m_interiorAdvectShader);
+		m_interiorAdvectShader.use();
 
-		const GLint timeStepLoc = glGetUniformLocation(m_interiorAdvectShader, "timeStep");
-		const GLint rdxLoc = glGetUniformLocation(m_interiorAdvectShader, "rdx");
-		const GLint uLoc = glGetUniformLocation(m_interiorAdvectShader, "u");
-		const GLint xLoc = glGetUniformLocation(m_interiorAdvectShader, "x");
-		const GLint textureWidthLoc = glGetUniformLocation(m_interiorAdvectShader, "textureWidth");
-
-		glUniform1f(timeStepLoc, timeStep);
-		glUniform1f(rdxLoc, 1.0);
-		glUniform1i(textureWidthLoc, m_width);
-		glUniform1i(uLoc, 0);
-		glUniform1i(xLoc, 0);
+		m_interiorAdvectShader.setParameter1f("timeStep", timeStep);
+		m_interiorAdvectShader.setParameter1f("rdx", 1.0 / m_dx);
+		m_interiorAdvectShader.setParameter1i("textureWidth", m_width);
+		m_interiorAdvectShader.setParameter1i("u", 0);
+		m_interiorAdvectShader.setParameter1i("x", 0);
 
 		m_quad->draw();
-		glUseProgram(0);
+		m_interiorAdvectShader.unuse();
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		std::swap(m_v_src, m_v_dst);
@@ -245,18 +235,14 @@ void Fluid2D::advect_dye(float timeStep) {
 		glActiveTexture(GL_TEXTURE0 + 0);
 		glBindTexture(GL_TEXTURE_2D, m_dye[m_dye_src]);
 
-		glUseProgram(m_boundaryAdvectShader);
+		m_boundaryAdvectShader.use();
 
-		const GLint textureLoc = glGetUniformLocation(m_boundaryAdvectShader, "field");
-		const GLint scaleLoc = glGetUniformLocation(m_boundaryAdvectShader, "scale");
-		const GLint textureWidthLoc = glGetUniformLocation(m_boundaryAdvectShader, "textureWidth");
-
-		glUniform1f(scaleLoc, 0);
-		glUniform1i(textureLoc, 0);
-		glUniform1i(textureWidthLoc, m_width);
+		m_boundaryAdvectShader.setParameter1f("scale", 0);
+		m_boundaryAdvectShader.setParameter1i("field", 0);
+		m_boundaryAdvectShader.setParameter1i("textureWidth", m_width);
 
 		m_quad->draw();
-		glUseProgram(0);
+		m_boundaryAdvectShader.unuse();
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		std::swap(m_dye_src, m_dye_dst);
@@ -273,22 +259,16 @@ void Fluid2D::advect_dye(float timeStep) {
 		glActiveTexture(GL_TEXTURE0 + 1);
 		glBindTexture(GL_TEXTURE_2D, m_velocity[m_v_src]);
 
-		glUseProgram(m_interiorAdvectShader);
+		m_interiorAdvectShader.use();
 
-		const GLint timeStepLoc = glGetUniformLocation(m_interiorAdvectShader, "timeStep");
-		const GLint rdxLoc = glGetUniformLocation(m_interiorAdvectShader, "rdx");
-		const GLint uLoc = glGetUniformLocation(m_interiorAdvectShader, "u");
-		const GLint xLoc = glGetUniformLocation(m_interiorAdvectShader, "x");
-		const GLint textureWidthLoc = glGetUniformLocation(m_interiorAdvectShader, "textureWidth");
-
-		glUniform1f(timeStepLoc, timeStep);
-		glUniform1f(rdxLoc, 1.0);
-		glUniform1i(textureWidthLoc, m_width);
-		glUniform1i(uLoc, 1);
-		glUniform1i(xLoc, 0);
+		m_interiorAdvectShader.setParameter1f("timeStep", timeStep);
+		m_interiorAdvectShader.setParameter1f("rdx", 1.0 / m_dx);
+		m_interiorAdvectShader.setParameter1i("textureWidth", m_width);
+		m_interiorAdvectShader.setParameter1i("u", 1);
+		m_interiorAdvectShader.setParameter1i("x", 0);
 
 		m_quad->draw();
-		glUseProgram(0);
+		m_interiorAdvectShader.unuse();
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		std::swap(m_dye_src, m_dye_dst);
@@ -304,22 +284,16 @@ void Fluid2D::applyForce() {
 	glActiveTexture(GL_TEXTURE0 + 0);
 	glBindTexture(GL_TEXTURE_2D, m_velocity[m_v_src]);
 
-	glUseProgram(m_applyForceShader);
+	m_applyForceShader.use();
 
-	const GLint radiusLoc = glGetUniformLocation(m_applyForceShader, "radius");
-	const GLint pointLoc = glGetUniformLocation(m_applyForceShader, "point");
-	const GLint uLoc = glGetUniformLocation(m_applyForceShader, "u");
-	const GLint FLoc = glGetUniformLocation(m_applyForceShader, "F");
-	const GLint textureWidthLoc = glGetUniformLocation(m_applyForceShader, "textureWidth");
-
-	glUniform1f(radiusLoc, radius);
-	glUniform2f(pointLoc, m_forceStartX, m_forceStartY);
-	glUniform1i(textureWidthLoc, m_width);
-	glUniform1i(uLoc, 0);
-	glUniform2f(FLoc, m_forceX, m_forceY);
+	m_applyForceShader.setParameter1f("radius", radius);
+	m_applyForceShader.setParameter2f("point", m_forceStartX, m_forceStartY);
+	m_applyForceShader.setParameter1i("textureWidth", m_width);
+	m_applyForceShader.setParameter1i("u", 0);
+	m_applyForceShader.setParameter2f("F", m_forceX, m_forceY);
 
 	m_quad->draw();
-	glUseProgram(0);
+	m_applyForceShader.unuse();
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -334,25 +308,19 @@ void Fluid2D::diffuseVelocity(float timeStep) {
 		glActiveTexture(GL_TEXTURE0 + 0);
 		glBindTexture(GL_TEXTURE_2D, m_velocity[m_v_src]);
 
-		glUseProgram(m_possionShader);
-
-		const GLint xLoc = glGetUniformLocation(m_possionShader, "x");
-		const GLint bLoc = glGetUniformLocation(m_possionShader, "b");
-		const GLint alphaLoc = glGetUniformLocation(m_possionShader, "alpha");
-		const GLint rBetaLoc = glGetUniformLocation(m_possionShader, "rBeta");
-		const GLint textureWidthLoc = glGetUniformLocation(m_possionShader, "textureWidth");
+		m_possionShader.use();
 
 		float alpha = m_dx * m_dx / (m_viscosity * timeStep);
 		float rBeta = 1.0f / (4.0f + alpha);
 
-		glUniform1i(xLoc, 0);
-		glUniform1i(bLoc, 0);
-		glUniform1i(textureWidthLoc, m_width);
-		glUniform1f(alphaLoc, alpha);
-		glUniform1f(rBetaLoc, rBeta);
+		m_possionShader.setParameter1i("x", 0);
+		m_possionShader.setParameter1i("b", 0);
+		m_possionShader.setParameter1i("textureWidth", m_width);
+		m_possionShader.setParameter1f("alpha", alpha);
+		m_possionShader.setParameter1f("rBeta", rBeta);
 
 		m_quad->draw();
-		glUseProgram(0);
+		m_possionShader.unuse();
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		std::swap(m_v_src, m_v_dst);
@@ -366,20 +334,15 @@ void Fluid2D::divergence() {
 	glActiveTexture(GL_TEXTURE0 + 0);
 	glBindTexture(GL_TEXTURE_2D, m_velocity[m_v_src]);
 
-	glUseProgram(m_divergenceShader);
-
-	const GLint wLoc = glGetUniformLocation(m_divergenceShader, "w");
-	const GLint halfrdxLoc = glGetUniformLocation(m_divergenceShader, "halfrdx");
-	const GLint textureWidthLoc = glGetUniformLocation(m_divergenceShader, "textureWidth");
+	m_divergenceShader.use();
 
 	float halfrdx = 0.5f / m_dx;
-
-	glUniform1i(wLoc, 0);
-	glUniform1i(textureWidthLoc, m_width);
-	glUniform1f(halfrdxLoc, halfrdx);
+	m_divergenceShader.setParameter1i("w", 0);
+	m_divergenceShader.setParameter1i("textureWidth", m_width);
+	m_divergenceShader.setParameter1f("halfrdx", halfrdx);
 
 	m_quad->draw();
-	glUseProgram(0);
+	m_divergenceShader.unuse();
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -400,18 +363,14 @@ void Fluid2D::computePressure() {
 			glActiveTexture(GL_TEXTURE0 + 0);
 			glBindTexture(GL_TEXTURE_2D, m_pressure[m_p_src]);
 
-			glUseProgram(m_boundaryAdvectShader);
+			m_boundaryAdvectShader.use();
 
-			const GLint textureLoc = glGetUniformLocation(m_boundaryAdvectShader, "field");
-			const GLint scaleLoc = glGetUniformLocation(m_boundaryAdvectShader, "scale");
-			const GLint textureWidthLoc = glGetUniformLocation(m_boundaryAdvectShader, "textureWidth");
-
-			glUniform1i(textureWidthLoc, m_width);
-			glUniform1f(scaleLoc, 1);
-			glUniform1i(textureLoc, 0);
+			m_boundaryAdvectShader.setParameter1f("scale", 1);
+			m_boundaryAdvectShader.setParameter1i("field", 0);
+			m_boundaryAdvectShader.setParameter1i("textureWidth", m_width);
 
 			m_quad->draw();
-			glUseProgram(0);
+			m_boundaryAdvectShader.unuse();
 
 			std::swap(m_p_src, m_p_dst);
 		}
@@ -426,25 +385,19 @@ void Fluid2D::computePressure() {
 			glActiveTexture(GL_TEXTURE0 + 1);
 			glBindTexture(GL_TEXTURE_2D, m_divergence);
 
-			glUseProgram(m_possionShader);
-
-			const GLint xLoc = glGetUniformLocation(m_possionShader, "x");
-			const GLint bLoc = glGetUniformLocation(m_possionShader, "b");
-			const GLint alphaLoc = glGetUniformLocation(m_possionShader, "alpha");
-			const GLint rBetaLoc = glGetUniformLocation(m_possionShader, "rBeta");
-			const GLint textureWidthLoc = glGetUniformLocation(m_possionShader, "textureWidth");
+			m_possionShader.use();
 
 			float alpha = -m_dx * m_dx;
 			float rBeta = 0.25f;
 
-			glUniform1i(xLoc, 0);
-			glUniform1i(bLoc, 1);
-			glUniform1i(textureWidthLoc, m_width);
-			glUniform1f(alphaLoc, alpha);
-			glUniform1f(rBetaLoc, rBeta);
+			m_possionShader.setParameter1i("x", 0);
+			m_possionShader.setParameter1i("b", 1);
+			m_possionShader.setParameter1i("textureWidth", m_width);
+			m_possionShader.setParameter1f("alpha", alpha);
+			m_possionShader.setParameter1f("rBeta", rBeta);
 
 			m_quad->draw();
-			glUseProgram(0);
+			m_possionShader.unuse();
 
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			std::swap(m_p_src, m_p_dst);
@@ -460,18 +413,14 @@ void Fluid2D::gradientSubtraction() {
 		glActiveTexture(GL_TEXTURE0 + 0);
 		glBindTexture(GL_TEXTURE_2D, m_velocity[m_v_src]);
 
-		glUseProgram(m_boundaryAdvectShader);
+		m_boundaryAdvectShader.use();
 
-		const GLint textureLoc = glGetUniformLocation(m_boundaryAdvectShader, "field");
-		const GLint scaleLoc = glGetUniformLocation(m_boundaryAdvectShader, "scale");
-		const GLint textureWidthLoc = glGetUniformLocation(m_boundaryAdvectShader, "textureWidth");
-
-		glUniform1i(textureWidthLoc, m_width);
-		glUniform1f(scaleLoc, -1);
-		glUniform1i(textureLoc, 0);
+		m_boundaryAdvectShader.setParameter1f("scale", -1);
+		m_boundaryAdvectShader.setParameter1i("field", 0);
+		m_boundaryAdvectShader.setParameter1i("textureWidth", m_width);
 
 		m_quad->draw();
-		glUseProgram(0);
+		m_boundaryAdvectShader.unuse();
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		std::swap(m_v_src, m_v_dst);
@@ -487,153 +436,19 @@ void Fluid2D::gradientSubtraction() {
 		glActiveTexture(GL_TEXTURE0 + 1);
 		glBindTexture(GL_TEXTURE_2D, m_pressure[m_p_src]);
 
-		glUseProgram(m_gradientSubtractionShader);
-
-		const GLint wLoc = glGetUniformLocation(m_gradientSubtractionShader, "w");
-		const GLint pLoc = glGetUniformLocation(m_gradientSubtractionShader, "p");
-		const GLint halfrdxLoc = glGetUniformLocation(m_gradientSubtractionShader, "halfrdx");
-		const GLint textureWidthLoc = glGetUniformLocation(m_gradientSubtractionShader, "textureWidth");
+		m_gradientSubtractionShader.use();
 
 		float halfrdx = 0.5f / m_dx;
 
-		glUniform1i(wLoc, 0);
-		glUniform1i(pLoc, 1);
-		glUniform1f(textureWidthLoc, m_width);
-		glUniform1f(halfrdxLoc, halfrdx);
+		m_gradientSubtractionShader.setParameter1i("w", 0);
+		m_gradientSubtractionShader.setParameter1i("p", 1);
+		m_gradientSubtractionShader.setParameter1i("textureWidth", m_width);
+		m_gradientSubtractionShader.setParameter1f("halfrdx", halfrdx);
 
 		m_quad->draw();
-		glUseProgram(0);
-
+		m_gradientSubtractionShader.unuse();
+	
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		std::swap(m_v_src, m_v_dst);
 	}
-}
-
-void Fluid2D::solvePossion(int iterationCount = 30) {
-
-}
-
-void Fluid2D::copy(const GLuint* two, unsigned int from, unsigned int to) {
-	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, two[to], 0);
-
-	glActiveTexture(GL_TEXTURE0 + 0);
-	glBindTexture(GL_TEXTURE_2D, two[from]);
-	glUseProgram(m_copyShader);
-
-	const GLint sourceLoc = glGetUniformLocation(m_copyShader, "source");
-	glUniform1i(sourceLoc, 0);
-
-	m_quad->draw();
-	glUseProgram(0);
-}
-
-
-// *************************
-// *** Testing Functions ***
-// *************************
-void Fluid2D::testBoundaryDrawing() {
-	glUseProgram(testShader);
-	m_quad->draw();
-	glUseProgram(0);
-}
-
-void Fluid2D::testBoundaryAdvect() {
-	std::vector<GLfloat> data(m_width * m_height * 3, 0.0);
-	for (auto i = 0; i < m_width; i++) {
-		for (auto j = 0; j < m_height; j++) {
-			if (i == 0 || i == m_width - 1 || j == 0 || j == m_height - 1) {
-
-			}
-			else {
-				data[(i * m_height + j) * 3 + 1] = 1.0;
-			}
-		}
-	}
-
-	glActiveTexture(0);
-	glBindTexture(GL_TEXTURE_2D, m_velocity[0]);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_width, m_height, GL_RGB, GL_FLOAT, &data[0]);
-
-	glUseProgram(m_boundaryAdvectShader);
-
-	const GLint textureLoc = glGetUniformLocation(m_boundaryAdvectShader, "field");
-	const GLint scaleLoc = glGetUniformLocation(m_boundaryAdvectShader, "scale");
-	const GLint textureWidthLoc = glGetUniformLocation(m_boundaryAdvectShader, "textureWidth");
-
-	glUniform1f(scaleLoc, 1);
-	glUniform1i(textureLoc, 0);
-	glUniform1i(textureWidthLoc, m_width);
-
-	m_quad->draw();
-	glUseProgram(0);
-}
-
-void Fluid2D::testInteriorAdvect(float timeStep) {
-	std::vector<GLfloat> data(m_width * m_height * 3, 0.0);
-	for (auto i = 0; i < m_width; i++) {
-		for (auto j = 0; j < m_height; j++) {
-			if (i < m_width * 0.5 && j < m_height * 0.5) {
-				data[(i * m_height + j) * 3] = 0.01;
-			}
-		}
-	}
-
-	glActiveTexture(0);
-	glBindTexture(GL_TEXTURE_2D, m_velocity[0]);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_width, m_height, GL_RGB, GL_FLOAT, &data[0]);
-
-	glUseProgram(m_interiorAdvectShader);
-
-	const GLint timeStepLoc = glGetUniformLocation(m_interiorAdvectShader, "timeStep");
-	const GLint rdxLoc = glGetUniformLocation(m_interiorAdvectShader, "rdx");
-	const GLint uLoc = glGetUniformLocation(m_interiorAdvectShader, "u");
-	const GLint xLoc = glGetUniformLocation(m_interiorAdvectShader, "x");
-	const GLint halfTexelWidthLoc = glGetUniformLocation(m_interiorAdvectShader, "halfTexelWidth");
-
-	glUniform1f(timeStepLoc, timeStep);
-	glUniform1f(rdxLoc, m_width / 2);
-	glUniform1f(halfTexelWidthLoc, 1.0 / 1024);
-	glUniform1i(uLoc, 0);
-	glUniform1i(xLoc, 0);
-
-	m_quad->draw();
-	glUseProgram(0);
-}
-
-void Fluid2D::testApplyForce(float startX, float startY, float deltaX, float deltaY) {
-	float radius = glm::sqrt(deltaX * deltaX + deltaY * deltaY);
-
-	glActiveTexture(0);
-	glBindTexture(GL_TEXTURE_2D, m_velocity[0]);
-
-	glUseProgram(m_applyForceShader);
-
-	const GLint radiusLoc = glGetUniformLocation(m_applyForceShader, "radius");
-	const GLint pointLoc = glGetUniformLocation(m_applyForceShader, "point");
-	const GLint uLoc = glGetUniformLocation(m_applyForceShader, "u");
-	const GLint FLoc = glGetUniformLocation(m_applyForceShader, "F");
-	const GLint halfTexelWidthLoc = glGetUniformLocation(m_applyForceShader, "halfTexelWidth");
-
-	glUniform1f(radiusLoc, radius);
-	glUniform2f(pointLoc, startX, startY);
-	glUniform1f(halfTexelWidthLoc, 1.0 / 1024);
-	glUniform1i(uLoc, 0);
-	glUniform2f(FLoc, deltaX, deltaY);
-
-	m_quad->draw();
-	glUseProgram(0);
-}
-
-void Fluid2D::testDye() {
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glActiveTexture(0);
-	glBindTexture(GL_TEXTURE_2D, m_velocity[0]);
-	glUseProgram(m_copyShader);
-
-	const GLint sourceLoc = glGetUniformLocation(m_copyShader, "source");
-	glUniform1i(sourceLoc, 0);
-
-	m_quad->draw();
-	glUseProgram(0);
 }

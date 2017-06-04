@@ -1,6 +1,6 @@
 #pragma once
 
-#include "MinimalOpenGL.h"
+#include "mylib/MinimalOpenGL.h"
 #include "Fluid2D.h"
 
 #include <memory>

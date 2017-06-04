@@ -1,7 +1,8 @@
 #pragma once
 
-#include "MinimalOpenGL.h"
-#include "Mesh.h"
+#include "mylib/MinimalOpenGL.h"
+#include "mylib/Mesh.h"
+#include "mylib/Shader.h"
 #include <memory>
 
 
@@ -21,14 +22,14 @@ class Fluid2D {
 
 	std::unique_ptr<Mesh> m_line, m_quad;
 
-	GLuint testShader;
-	GLuint m_copyShader;
-	GLuint m_boundaryAdvectShader;
-	GLuint m_interiorAdvectShader;
-	GLuint m_applyForceShader;
-	GLuint m_possionShader;
-	GLuint m_divergenceShader;
-	GLuint m_gradientSubtractionShader;
+	ShaderProgram testShader;
+	ShaderProgram m_copyShader;
+	ShaderProgram m_boundaryAdvectShader;
+	ShaderProgram m_interiorAdvectShader;
+	ShaderProgram m_applyForceShader;
+	ShaderProgram m_possionShader;
+	ShaderProgram m_divergenceShader;
+	ShaderProgram m_gradientSubtractionShader;
 
 	bool m_bApplyForce;
 	float m_forceStartX, m_forceStartY, m_forceX, m_forceY;
@@ -42,15 +43,6 @@ class Fluid2D {
 	void computePressure();
 	void gradientSubtraction();
 	void divergence();
-	void solvePossion(int);
-	void copy(const GLuint* two, unsigned int, unsigned int);
-
-	// for testing purposes
-	void testBoundaryDrawing();
-	void testBoundaryAdvect();
-	void testInteriorAdvect(float);
-	void testApplyForce(float, float, float, float);
-	void testDye();
 
 public:
 	Fluid2D(int width, int height);

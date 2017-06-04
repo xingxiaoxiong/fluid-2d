@@ -119,14 +119,16 @@
     <ClCompile Include="App.cpp" />
     <ClCompile Include="Fluid2D.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Mesh.cpp" />
-    <ClCompile Include="MinimalOpenGL.cpp" />
+    <ClCompile Include="mylib\Mesh.cpp" />
+    <ClCompile Include="mylib\MinimalOpenGL.cpp" />
+    <ClCompile Include="mylib\Shader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App.h" />
     <ClInclude Include="Fluid2D.h" />
-    <ClInclude Include="Mesh.h" />
-    <ClInclude Include="MinimalOpenGL.h" />
+    <ClInclude Include="mylib\Shader.h" />
+    <ClInclude Include="mylib\Mesh.h" />
+    <ClInclude Include="mylib\MinimalOpenGL.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\apply_force.fs" />
