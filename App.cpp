@@ -65,7 +65,8 @@ void App::run() {
 
 	while (!glfwWindowShouldClose(m_window))
 	{
-		glClearColor(1.f, 1.f, 1.f, 0);
+		glClearColor(0.1, 0.1, 0.1, 0);
+		//glClearColor(1.0, 1.0, 1.0, 0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		currentTime = glfwGetTime();

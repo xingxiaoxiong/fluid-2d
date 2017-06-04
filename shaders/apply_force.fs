@@ -5,18 +5,17 @@ in vec2 fUV;
 out vec4 color;
 
 uniform sampler2D u; 
-uniform float radius; // in clip space
-uniform vec2 point; // in clip space
-uniform vec2 F; // magnitude in clip space
-uniform float halfTexelWidth;
+uniform float radius; 
+uniform vec2 point; 
+uniform vec2 F; 
+uniform int textureWidth;
 
 void main() {
-	if (fUV.x > halfTexelWidth && fUV.x < 1 - halfTexelWidth && fUV.y > halfTexelWidth && fUV.y < 1 - halfTexelWidth) {
-		vec2 pos = (fUV - vec2(0.5, 0.5)) * 0.5;
-		vec2 v_xy = F * exp(distance(pos, point) * distance(pos, point) / radius) * 0.1;
+	if (fUV.x > 0 && fUV.x < textureWidth - 1 && fUV.y > 0 && fUV.y < textureWidth - 1) {
+		vec2 v_xy = F * exp(- distance(fUV, point) * distance(fUV, point) / radius) * 1.0;
 		// color = vec4(v_xy.x, v_xy.y, 0, 1.0);
-		color = vec4(abs(v_xy.x), abs(v_xy.y), 0, 1.0);
+		color = vec4(v_xy.x, v_xy.y, 0, 0) + texelFetch(u, ivec2(fUV), 0);
 	} else {
-		color = texture(u, fUV);
+		color = texelFetch(u, ivec2(fUV), 0);
 	}
 }

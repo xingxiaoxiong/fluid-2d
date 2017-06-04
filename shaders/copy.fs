@@ -7,5 +7,5 @@ uniform sampler2D source;
 out vec4 color;
 
 void main() {
-    color = texture(source, fUV);
+    color = texelFetch(source, ivec2(fUV), 0);
 }
