@@ -114,10 +114,38 @@ void Fluid2D::setup() {
 	m_boundaryAdvectShader.load("shaders/forward_uv.vs", "shaders/boundary_advect.fs");
 	m_interiorAdvectShader.load("shaders/forward_uv.vs", "shaders/interior_advect.fs");
 	m_applyForceShader.load("shaders/forward_uv.vs", "shaders/apply_force.fs");
-	m_copyShader.load("shaders/forward_uv.vs", "shaders/copy.fs");
 	m_possionShader.load("shaders/forward_uv.vs", "shaders/solve_jacobi.fs");
 	m_divergenceShader.load("shaders/forward_uv.vs", "shaders/divergence.fs");
 	m_gradientSubtractionShader.load("shaders/forward_uv.vs", "shaders/gradient_subtraction.fs");
+
+	m_boundaryAdvectShader.use();
+	m_boundaryAdvectShader.setParameter1i("field", 0);
+	m_boundaryAdvectShader.setParameter1i("textureWidth", m_width);
+	m_boundaryAdvectShader.unuse();
+
+	m_interiorAdvectShader.use();
+	m_interiorAdvectShader.setParameter1f("rdx", 1.0 / m_dx);
+	m_interiorAdvectShader.setParameter1i("textureWidth", m_width);
+	m_interiorAdvectShader.unuse();
+
+	m_applyForceShader.use();
+	m_applyForceShader.setParameter1i("textureWidth", m_width);
+	m_applyForceShader.unuse();
+
+	m_possionShader.use();
+	m_possionShader.setParameter1i("textureWidth", m_width);
+	m_possionShader.unuse();
+
+	m_divergenceShader.use();
+	float halfrdx = 0.5f / m_dx;
+	m_divergenceShader.setParameter1i("textureWidth", m_width);
+	m_divergenceShader.setParameter1f("halfrdx", halfrdx);
+	m_divergenceShader.unuse();
+
+	m_gradientSubtractionShader.use();
+	m_gradientSubtractionShader.setParameter1i("textureWidth", m_width);
+	m_gradientSubtractionShader.setParameter1f("halfrdx", halfrdx);
+	m_gradientSubtractionShader.unuse();
 }
 
 void Fluid2D::applyForce(float startX, float startY, float deltaX, float deltaY) {
@@ -188,11 +216,7 @@ void Fluid2D::advectVelocity(float timeStep) {
 		glBindTexture(GL_TEXTURE_2D, m_velocity[m_v_src]);
 
 		m_boundaryAdvectShader.use();
-
 		m_boundaryAdvectShader.setParameter1f("scale", -1);
-		m_boundaryAdvectShader.setParameter1i("field", 0);
-		m_boundaryAdvectShader.setParameter1i("textureWidth", m_width);
-
 		m_quad->draw();
 		m_boundaryAdvectShader.unuse();
 
@@ -210,13 +234,9 @@ void Fluid2D::advectVelocity(float timeStep) {
 		glBindTexture(GL_TEXTURE_2D, m_velocity[m_v_src]);
 
 		m_interiorAdvectShader.use();
-
 		m_interiorAdvectShader.setParameter1f("timeStep", timeStep);
-		m_interiorAdvectShader.setParameter1f("rdx", 1.0 / m_dx);
-		m_interiorAdvectShader.setParameter1i("textureWidth", m_width);
 		m_interiorAdvectShader.setParameter1i("u", 0);
 		m_interiorAdvectShader.setParameter1i("x", 0);
-
 		m_quad->draw();
 		m_interiorAdvectShader.unuse();
 
@@ -236,11 +256,7 @@ void Fluid2D::advect_dye(float timeStep) {
 		glBindTexture(GL_TEXTURE_2D, m_dye[m_dye_src]);
 
 		m_boundaryAdvectShader.use();
-
 		m_boundaryAdvectShader.setParameter1f("scale", 0);
-		m_boundaryAdvectShader.setParameter1i("field", 0);
-		m_boundaryAdvectShader.setParameter1i("textureWidth", m_width);
-
 		m_quad->draw();
 		m_boundaryAdvectShader.unuse();
 
@@ -260,13 +276,9 @@ void Fluid2D::advect_dye(float timeStep) {
 		glBindTexture(GL_TEXTURE_2D, m_velocity[m_v_src]);
 
 		m_interiorAdvectShader.use();
-
 		m_interiorAdvectShader.setParameter1f("timeStep", timeStep);
-		m_interiorAdvectShader.setParameter1f("rdx", 1.0 / m_dx);
-		m_interiorAdvectShader.setParameter1i("textureWidth", m_width);
 		m_interiorAdvectShader.setParameter1i("u", 1);
 		m_interiorAdvectShader.setParameter1i("x", 0);
-
 		m_quad->draw();
 		m_interiorAdvectShader.unuse();
 
@@ -288,7 +300,6 @@ void Fluid2D::applyForce() {
 
 	m_applyForceShader.setParameter1f("radius", radius);
 	m_applyForceShader.setParameter2f("point", m_forceStartX, m_forceStartY);
-	m_applyForceShader.setParameter1i("textureWidth", m_width);
 	m_applyForceShader.setParameter1i("u", 0);
 	m_applyForceShader.setParameter2f("F", m_forceX, m_forceY);
 
@@ -315,7 +326,6 @@ void Fluid2D::diffuseVelocity(float timeStep) {
 
 		m_possionShader.setParameter1i("x", 0);
 		m_possionShader.setParameter1i("b", 0);
-		m_possionShader.setParameter1i("textureWidth", m_width);
 		m_possionShader.setParameter1f("alpha", alpha);
 		m_possionShader.setParameter1f("rBeta", rBeta);
 
@@ -335,12 +345,7 @@ void Fluid2D::divergence() {
 	glBindTexture(GL_TEXTURE_2D, m_velocity[m_v_src]);
 
 	m_divergenceShader.use();
-
-	float halfrdx = 0.5f / m_dx;
 	m_divergenceShader.setParameter1i("w", 0);
-	m_divergenceShader.setParameter1i("textureWidth", m_width);
-	m_divergenceShader.setParameter1f("halfrdx", halfrdx);
-
 	m_quad->draw();
 	m_divergenceShader.unuse();
 
@@ -364,11 +369,7 @@ void Fluid2D::computePressure() {
 			glBindTexture(GL_TEXTURE_2D, m_pressure[m_p_src]);
 
 			m_boundaryAdvectShader.use();
-
 			m_boundaryAdvectShader.setParameter1f("scale", 1);
-			m_boundaryAdvectShader.setParameter1i("field", 0);
-			m_boundaryAdvectShader.setParameter1i("textureWidth", m_width);
-
 			m_quad->draw();
 			m_boundaryAdvectShader.unuse();
 
@@ -392,7 +393,6 @@ void Fluid2D::computePressure() {
 
 			m_possionShader.setParameter1i("x", 0);
 			m_possionShader.setParameter1i("b", 1);
-			m_possionShader.setParameter1i("textureWidth", m_width);
 			m_possionShader.setParameter1f("alpha", alpha);
 			m_possionShader.setParameter1f("rBeta", rBeta);
 
@@ -414,11 +414,7 @@ void Fluid2D::gradientSubtraction() {
 		glBindTexture(GL_TEXTURE_2D, m_velocity[m_v_src]);
 
 		m_boundaryAdvectShader.use();
-
 		m_boundaryAdvectShader.setParameter1f("scale", -1);
-		m_boundaryAdvectShader.setParameter1i("field", 0);
-		m_boundaryAdvectShader.setParameter1i("textureWidth", m_width);
-
 		m_quad->draw();
 		m_boundaryAdvectShader.unuse();
 
@@ -437,14 +433,8 @@ void Fluid2D::gradientSubtraction() {
 		glBindTexture(GL_TEXTURE_2D, m_pressure[m_p_src]);
 
 		m_gradientSubtractionShader.use();
-
-		float halfrdx = 0.5f / m_dx;
-
 		m_gradientSubtractionShader.setParameter1i("w", 0);
 		m_gradientSubtractionShader.setParameter1i("p", 1);
-		m_gradientSubtractionShader.setParameter1i("textureWidth", m_width);
-		m_gradientSubtractionShader.setParameter1f("halfrdx", halfrdx);
-
 		m_quad->draw();
 		m_gradientSubtractionShader.unuse();
 	

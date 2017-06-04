@@ -23,7 +23,6 @@ class Fluid2D {
 	std::unique_ptr<Mesh> m_line, m_quad;
 
 	ShaderProgram testShader;
-	ShaderProgram m_copyShader;
 	ShaderProgram m_boundaryAdvectShader;
 	ShaderProgram m_interiorAdvectShader;
 	ShaderProgram m_applyForceShader;
