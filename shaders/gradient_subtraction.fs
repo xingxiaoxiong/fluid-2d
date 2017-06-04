@@ -7,21 +7,21 @@ out vec4 color;
 uniform sampler2D w; 
 uniform sampler2D p; 
 uniform float halfrdx; 
-uniform float halfTexelWidth;
+uniform int textureWidth;
 
 void main() {
-	float texelWidth = 2 * halfTexelWidth;
-	if (fUV.x > halfTexelWidth && fUV.x < 1 - halfTexelWidth && fUV.y > halfTexelWidth && fUV.y < 1 - halfTexelWidth) {
-		float pL = texture(p, fUV - vec2(texelWidth, 0)).x;
-		float pR = texture(p, fUV + vec2(texelWidth, 0)).x;
-		float pB = texture(p, fUV - vec2(0, texelWidth)).x;
-		float pT = texture(p, fUV + vec2(0, texelWidth)).x;
+	ivec2 uv = ivec2(fUV);
+	if (uv.x > 0 && uv.x < textureWidth - 1 && uv.y > 0 && uv.y < textureWidth - 1) {
+		float pL = texelFetch(p, uv - ivec2(1, 0), 0).x;
+		float pR = texelFetch(p, uv + ivec2(1, 0), 0).x;
+		float pB = texelFetch(p, uv - ivec2(0, 1), 0).x;
+		float pT = texelFetch(p, uv + ivec2(0, 1), 0).x;
 
-		vec4 v = texture(w, fUV);
+		vec4 v = texelFetch(w, uv, 0);
 		v.xy = v.xy - halfrdx * vec2(pR - pL, pT - pB);
 
 		color = v;
 	} else {
-		color = texture(w, fUV);
+		color = texelFetch(w, uv, 0);
 	}
 }

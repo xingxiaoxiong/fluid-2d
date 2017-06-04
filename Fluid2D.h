@@ -9,6 +9,8 @@ class Fluid2D {
 	int m_width, m_height;
 	float m_viscosity;
 
+	float m_dx; // grid scale
+
 	GLuint m_fbo;
 	GLuint m_velocity[2], m_pressure[2];
 	GLuint m_divergence;
