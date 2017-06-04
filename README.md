@@ -13,6 +13,6 @@ At Section Force Application in the article, the equation used to calculate the 
 
 ```math
 
-c = F*exp(-\frac{(x - x_p)^2 + (y - y_p)^2}{r})
+![](forceEqn.gif)
 
 ```
