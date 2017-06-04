@@ -49,49 +49,28 @@
     <None Include="shaders\poly.fs">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="shaders\poly.vs">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="shaders\boundary_advect.fs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="shaders\boundary_advect.vs">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="shaders\interior_advect.fs">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="shaders\interior_advect.vs">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="shaders\apply_force.fs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="shaders\apply_force.vs">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="shaders\copy.fs">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="shaders\copy.vs">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="shaders\solve_jacobi.fs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="shaders\solve_jacobi.vs">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="shaders\divergence.fs">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="shaders\divergence.vs">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="shaders\gradient_subtraction.fs">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="shaders\gradient_subtraction.vs">
+    <None Include="shaders\forward_uv.vs">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

@@ -130,21 +130,14 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\apply_force.fs" />
-    <None Include="shaders\apply_force.vs" />
     <None Include="shaders\boundary_advect.fs" />
-    <None Include="shaders\boundary_advect.vs" />
     <None Include="shaders\copy.fs" />
-    <None Include="shaders\copy.vs" />
+    <None Include="shaders\forward_uv.vs" />
     <None Include="shaders\divergence.fs" />
-    <None Include="shaders\divergence.vs" />
     <None Include="shaders\gradient_subtraction.fs" />
-    <None Include="shaders\gradient_subtraction.vs" />
     <None Include="shaders\interior_advect.fs" />
-    <None Include="shaders\interior_advect.vs" />
     <None Include="shaders\poly.fs" />
-    <None Include="shaders\poly.vs" />
     <None Include="shaders\solve_jacobi.fs" />
-    <None Include="shaders\solve_jacobi.vs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

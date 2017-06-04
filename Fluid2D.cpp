@@ -50,8 +50,7 @@ void Fluid2D::setup() {
 
 	for (auto i = 0; i < m_height; i++) {
 		for (auto j = 0; j < m_width; j++) {
-			//if (i != 0 && j != 0 && i != (m_width - 1) && j != (m_width - 1))
-				flowRight[(i * m_width + j) * 3 + 0] = 1.0;
+			flowRight[(i * m_width + j) * 3 + 0] = 1.0;
 		}
 	}
 
@@ -111,14 +110,14 @@ void Fluid2D::setup() {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	// initialize shaders
-	testShader = createShaderProgram(loadTextFile("shaders/poly.vs"), loadTextFile("shaders/poly.fs"));
-	m_boundaryAdvectShader = createShaderProgram(loadTextFile("shaders/boundary_advect.vs"), loadTextFile("shaders/boundary_advect.fs"));
-	m_interiorAdvectShader = createShaderProgram(loadTextFile("shaders/interior_advect.vs"), loadTextFile("shaders/interior_advect.fs"));
-	m_applyForceShader = createShaderProgram(loadTextFile("shaders/apply_force.vs"), loadTextFile("shaders/apply_force.fs"));
-	m_copyShader = createShaderProgram(loadTextFile("shaders/copy.vs"), loadTextFile("shaders/copy.fs"));
-	m_possionShader = createShaderProgram(loadTextFile("shaders/solve_jacobi.vs"), loadTextFile("shaders/solve_jacobi.fs"));
-	m_divergenceShader = createShaderProgram(loadTextFile("shaders/divergence.vs"), loadTextFile("shaders/divergence.fs"));
-	m_gradientSubtractionShader = createShaderProgram(loadTextFile("shaders/gradient_subtraction.vs"), loadTextFile("shaders/gradient_subtraction.fs"));
+	testShader = createShaderProgram(loadTextFile("shaders/forward_uv.vs"), loadTextFile("shaders/poly.fs"));
+	m_boundaryAdvectShader = createShaderProgram(loadTextFile("shaders/forward_uv.vs"), loadTextFile("shaders/boundary_advect.fs"));
+	m_interiorAdvectShader = createShaderProgram(loadTextFile("shaders/forward_uv.vs"), loadTextFile("shaders/interior_advect.fs"));
+	m_applyForceShader = createShaderProgram(loadTextFile("shaders/forward_uv.vs"), loadTextFile("shaders/apply_force.fs"));
+	m_copyShader = createShaderProgram(loadTextFile("shaders/forward_uv.vs"), loadTextFile("shaders/copy.fs"));
+	m_possionShader = createShaderProgram(loadTextFile("shaders/forward_uv.vs"), loadTextFile("shaders/solve_jacobi.fs"));
+	m_divergenceShader = createShaderProgram(loadTextFile("shaders/forward_uv.vs"), loadTextFile("shaders/divergence.fs"));
+	m_gradientSubtractionShader = createShaderProgram(loadTextFile("shaders/forward_uv.vs"), loadTextFile("shaders/gradient_subtraction.fs"));
 }
 
 void Fluid2D::applyForce(float startX, float startY, float deltaX, float deltaY) {
@@ -131,22 +130,12 @@ void Fluid2D::applyForce(float startX, float startY, float deltaX, float deltaY)
 }
 
 void Fluid2D::update(float timeStep) {
-	// timeStep = 0.00001;
-	/*glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glUseProgram(testShader);
-	m_quad->draw();
-	glUseProgram(0);*/
-
-	// testBoundaryAdvect();
-	// return;
-
 	timeStep = 0.3;
 	advectVelocity(timeStep);
 
 	advect_dye(timeStep);
 
 	if (m_bApplyForce) {
-		//testApplyForce(m_forceX, m_forceY, m_forceStartX, m_forceStartY);
 		applyForce();
 		m_bApplyForce = false;
 	}
@@ -244,12 +233,6 @@ void Fluid2D::advectVelocity(float timeStep) {
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		std::swap(m_v_src, m_v_dst);
 	}
-
-	//glUseProgram(m_copyShader);
-	//const GLint sourceLoc = glGetUniformLocation(m_copyShader, "source");
-	//glUniform1i(sourceLoc, 0);
-	//m_quad->draw();
-	//glUseProgram(0);
 
 }
 
